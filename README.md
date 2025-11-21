@@ -1,6 +1,6 @@
-# EE2211 Machine Learning Library
+# My EE2211 Library
 
-A comprehensive Python library for linear algebra operations, regression analysis, and optimization algorithms designed for EE2211 coursework.
+A sample Python library for linear algebra operations, regression analysis, and optimization algorithms designed for EE2211 coursework.
 
 ## Table of Contents
 - [Installation](#installation)
@@ -498,15 +498,3 @@ w, _, mse = linear_regression(X_best, Y.T)
 
 **Problem:** Poor classification accuracy
 - **Solution:** Try increasing polynomial degree or adding more training data
-
----
-
-## License
-
-For educational use in EE2211 course.
-
----
-
-## Contact
-
-For questions or issues, refer to course materials or consult with teaching staff.

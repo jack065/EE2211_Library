@@ -1,3 +1,5 @@
-/input.py
+# input.py
 /__pycache__
 /.gitignore
+/.vscode
+test.py

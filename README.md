@@ -13,6 +13,9 @@ A sample Python library for linear algebra operations, regression analysis, and 
   - [Gradient Descent](#gradient-descent)
   - [Correlation Analysis](#correlation-analysis)
   - [Regression Trees](#regression-trees)
+- [Common Patterns](#common-patterns)
+- [Tips and Best Practices](#tips-and-best-practices)
+- [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -54,25 +57,39 @@ Performs linear regression **without bias term**. For bias, use `polynomial_regr
 def linear_regression(x, y, x_pred=None)
 ```
 
-**Parameters:**
-- `x`: Input features (n_samples × n_features)
-- `y`: Target values (n_samples × n_outputs)
-- `x_pred`: Optional prediction points
-
 **Returns:** `(weights, predictions, MSE)`
 
-**Example 1: Simple Linear Regression**
+**Use Case 1: Overdetermined System (Least Squares)**
 ```python
 X = np.array([[1, 2], [2, 4], [3, 6], [4, 8]])
 Y = np.array([[3], [5], [7], [9]])
 w, y_pred, mse = linear_regression(X, Y)
+# Output: Weights via left inverse, MSE, y_pred = None
 ```
 
-**Example 2: With Predictions**
+**Use Case 2: Underdetermined System (Minimum Norm)**
 ```python
-X = np.array([[50, 10], [40, 7], [65, 12], [70, 5], [75, 4]])
-Y = np.array([[9, 3], [6, 7], [5, 6], [3, 1], [2, 9]])
-w, y_pred, mse = linear_regression(X, Y, x_pred=np.array([[42, 8]]))
+X = np.array([[1, 2, 3, 4]])
+Y = np.array([[10]])
+w, y_pred, mse = linear_regression(X, Y)
+# Output: Weights via right inverse, MSE = 0.0, y_pred = None
+```
+
+**Use Case 3: Well-Determined System with Predictions**
+```python
+X = np.array([[1, 2], [3, 4]])
+Y = np.array([[5], [11]])
+X_pred = np.array([[5, 6]])
+w, y_pred, mse = linear_regression(X, Y, x_pred=X_pred)
+# Output: Exact inverse weights, MSE = 0.0, y_pred = [[17.]]
+```
+
+**Use Case 4: Singular Matrix Handling**
+```python
+X = np.array([[1, 2], [2, 4]]) # Linearly dependent columns
+Y = np.array([[3], [6]])
+w, y_pred, mse = linear_regression(X, Y)
+# Output: Prints "Matrix is singular, cannot compute inverse.", returns (None, None, None)
 ```
 
 ---
@@ -85,32 +102,30 @@ Performs polynomial regression with optional regularization (Ridge regression).
 def polynomial_regression(x, y, degree, x_pred=None, lmbda=0.0, pearson=False)
 ```
 
-**Parameters:**
-- `degree`: Polynomial degree (1 = linear with bias, 2 = quadratic, etc.)
-- `lmbda`: Regularization parameter (0 = no regularization)
-- `pearson`: Whether to compute Pearson correlation
+**Returns:** `(weights, predictions, MSE)`
 
-**Example 1: Quadratic Regression**
+**Use Case 1: Overdetermined (Primal Mode)**
 ```python
 X = np.array([[1], [2], [3], [4], [5]])
 Y = np.array([[1], [4], [9], [16], [25]])
 w, y_pred, mse = polynomial_regression(X, Y, degree=2)
+# Output: Solves using X_poly.T @ X_poly (primal mode), exact fit MSE ~ 0
 ```
 
-**Example 2: With Regularization**
+**Use Case 2: Underdetermined (Dual Mode with Regularization)**
+```python
+X = np.array([[1], [2]])
+Y = np.array([[1], [0]])
+w, y_pred, mse = polynomial_regression(X, Y, degree=5, lmbda=0.1)
+# Output: System has more features (6) than samples (2). Solves using dual mode with Ridge penalty.
+```
+
+**Use Case 3: Pearson Correlation Output**
 ```python
 X = np.array([[50, 10], [40, 7], [65, 12], [70, 5], [75, 4]])
 Y = np.array([[9, 3], [6, 7], [5, 6], [3, 1], [2, 9]])
-w, y_pred, mse = polynomial_regression(X, Y, degree=3, 
-                                       x_pred=np.array([[42, 8]]), 
-                                       lmbda=0.1)
-```
-
-**Example 3: Cubic Polynomial**
-```python
-X = np.array([[1, 4], [5, -1], [2, 3]])
-Y = np.array([[1], [3], [1]])
-w, y_pred, mse = polynomial_regression(X, Y, degree=2, lmbda=0)
+w, y_pred, mse = polynomial_regression(X, Y, degree=2, pearson=True)
+# Output: Prints Pearson correlation coefficient for output dimension 0 and 1, returns standard tuple.
 ```
 
 ---
@@ -123,35 +138,30 @@ Performs classification using one-hot encoding for multi-class problems.
 def one_hot_encoder(x, y, degree=1, x_pred=None, lmbda=0)
 ```
 
-**Parameters:**
-- `degree`: Polynomial degree for feature expansion
-- `lmbda`: Regularization parameter
-
 **Returns:** `(weights, error_count, predicted_labels)`
 
-**Example 1: Linear Classification**
+**Use Case 1: Well-Determined System with Exact Classification**
 ```python
-X = np.array([[1, 3, -2], [-4, 0, -1], [3, 1, 8], [2, 1, 6], [8, 4, 6]])
-Y = np.array([[1], [1], [2], [3], [3]])
-w, errors, pred = one_hot_encoder(X, Y, degree=1, 
-                                   x_pred=np.array([[1, -2, 4]]))
+X = np.array([[1, 0], [0, 1], [-1, 0]])
+Y = np.array([['A'], ['B'], ['C']]) # 3 samples, transforms to 3 classes (3 columns)
+w, errors, pred = one_hot_encoder(X, Y, degree=1)
+# Output: Solves exactly, error_count = 0
 ```
 
-**Example 2: Polynomial Classification**
+**Use Case 2: Overdetermined System with Misclassifications**
 ```python
-X = np.array([[4], [7], [10], [2], [3], [9]])
-Y = np.array([[1], [1], [1], [2], [2], [2]])
-w, errors, pred = one_hot_encoder(X, Y, degree=4, 
-                                   x_pred=np.array([[6]]))
+X = np.array([[1], [2], [1.5], [8], [9], [8.5]])
+Y = np.array([[1], [1], [2], [3], [3], [1]]) # Deliberate overlap/noise
+w, errors, pred = one_hot_encoder(X, Y, degree=1)
+# Output: Solves via least squares, prints "Number of misclassifications: X out of 6"
 ```
 
-**Example 3: Multi-Feature Classification**
+**Use Case 3: Underdetermined System with Predictions**
 ```python
-X = np.array([[1, 3, -2], [-4, 0, -1], [3, 1, 8], [2, 1, 6], [8, 4, 6]])
-Y = np.array([[1], [1], [2], [3], [3]])
-w, errors, pred = one_hot_encoder(X, Y, degree=3, 
-                                   x_pred=np.array([[1, -2, 4]]), 
-                                   lmbda=0)
+X = np.array([[1], [2]])
+Y = np.array([['cat'], ['dog']])
+w, errors, pred = one_hot_encoder(X, Y, degree=4, x_pred=np.array([[1.5]]))
+# Output: Solves via dual mode, pred = array(['cat'] or ['dog']) based on closest fit
 ```
 
 ---
@@ -163,10 +173,25 @@ w, errors, pred = one_hot_encoder(X, Y, degree=3,
 def det(x)
 ```
 
-**Example:**
+**Use Case 1: Invertible Matrix**
 ```python
 X = np.array([[1, 2], [3, 4]])
 determinant = det(X)
+# Output: -2.0
+```
+
+**Use Case 2: Singular Matrix**
+```python
+X = np.array([[1, 1], [1, 1]])
+determinant = det(X)
+# Output: 0.0
+```
+
+**Use Case 3: Non-Square Matrix**
+```python
+X = np.array([[1, 2, 3], [4, 5, 6]])
+determinant = det(X)
+# Output: Prints "Matrix is not square, determinant not defined.", returns None
 ```
 
 ---
@@ -179,31 +204,35 @@ Analyzes matrix systems and finds solutions when possible.
 def determine(x, y=None)
 ```
 
-**Example 1: Overdetermined System**
+**Use Case 1: Overdetermined System (Least Squares)**
 ```python
 X = np.array([[1, 4], [2, 7], [-3, 11]])
 Y = np.array([[1], [-2.5], [4]])
 w = determine(X, Y)
+# Output: Prints left inverse existence, returns least squares w, prints residual
 ```
 
-**Example 2: Matrix Structure Analysis**
-```python
-X = np.array([[1, 4, 3], [2, -1, 3]])
-determine(X)  # Analyzes structure without solving
-```
-
-**Example 3: Underdetermined System**
+**Use Case 2: Underdetermined System (Minimum Norm)**
 ```python
 X = np.array([[1, 2, 3], [4, 5, 6]])
 Y = np.array([[7], [8]])
 w = determine(X, Y)
+# Output: Prints right inverse existence, returns w
 ```
 
-**Example 4: Singular Square Matrix**
+**Use Case 3: Singular Square Matrix with One-Sided Check**
 ```python
 X = np.array([[1, 2], [2, 4]])
 Y = np.array([[3], [6]])
-w = determine(X, Y)  # Checks for one-sided inverses
+w = determine(X, Y)
+# Output: Fails direct inverse, falls back to checking left/right inverses.
+```
+
+**Use Case 4: Pure Structure Analysis (No Y)**
+```python
+X = np.array([[1, 4, 3], [2, -1, 3]])
+determine(X) 
+# Output: Prints "Matrix is UNDERDETERMINED", checks right inverse, returns None
 ```
 
 ---
@@ -214,10 +243,19 @@ w = determine(X, Y)  # Checks for one-sided inverses
 def rref(x, y=None)
 ```
 
-**Example:**
+**Use Case 1: Standard Matrix RREF**
 ```python
 X = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
 rref_matrix, pivots = rref(X)
+# Output: rref_matrix of X, pivots = (0, 1)
+```
+
+**Use Case 2: Augmented Matrix Solving**
+```python
+X = np.array([[1, 2], [3, 4]])
+Y = np.array([[5], [11]])
+rref_matrix, pivots = rref(X, Y)
+# Output: Appends Y to X. rref_matrix shows identity on left, solution on right column.
 ```
 
 ---
@@ -230,130 +268,33 @@ Performs gradient descent using PyTorch's automatic differentiation.
 def gradient_descent(initial, function, learning_rate=0.01, trials=10)
 ```
 
-**Parameters:**
-- `initial`: Starting point (scalar or array for multivariable)
-- `function`: Function to minimize (must use PyTorch operations)
-- `learning_rate`: Step size
-- `trials`: Number of iterations (0 = show initial gradient only)
-
-**Returns:** Optimized parameter values
-
 **Important:** Use PyTorch functions (`torch.sin`, `torch.cos`, etc.) not NumPy!
 
----
-
-#### Example 1: Simple Quadratic
-```python
-def f(x):
-    return x**2
-
-result = gradient_descent(initial=5.0, function=f, 
-                         learning_rate=0.1, trials=20)
-# Finds minimum at x=0
-```
-
----
-
-#### Example 2: Polynomial Function
-```python
-def f(x):
-    return x**4 - 3*x**3 + 2*x
-
-result = gradient_descent(initial=2.0, function=f, 
-                         learning_rate=0.01, trials=50)
-```
-
----
-
-#### Example 3: Trigonometric Function
-```python
-def f(x):
-    return torch.sin(x)**2
-
-result = gradient_descent(initial=3.0, function=f, 
-                         learning_rate=0.1, trials=30)
-```
-
----
-
-#### Example 4: Exponential Function
-```python
-def f(x):
-    return torch.exp(x**2)
-
-result = gradient_descent(initial=2.0, function=f, 
-                         learning_rate=0.01, trials=100)
-```
-
----
-
-#### Example 5: Multivariable Quadratic
+**Use Case 1: Multivariable Quadratic (Convergence)**
 ```python
 def f(x):
     return x[0]**2 + x[1]**2
 
-result = gradient_descent(initial=[3.0, 4.0], function=f, 
-                         learning_rate=0.1, trials=50)
-# Finds minimum at (0, 0)
+result = gradient_descent(initial=[3.0, 4.0], function=f, learning_rate=0.1, trials=50)
+# Output: Iterates 50 times, finds minimum near array([0., 0.])
 ```
 
----
-
-#### Example 6: Multivariable Mixed Terms
-```python
-def f(x):
-    return x[0]**2 + x[0] * x[1]**2
-
-result = gradient_descent(initial=[3.0, 2.0], function=f, 
-                         learning_rate=0.05, trials=100)
-```
-
----
-
-#### Example 7: Rosenbrock Function (Challenging)
+**Use Case 2: Rosenbrock Function (Challenging Landscape)**
 ```python
 def rosenbrock(x):
     return (1 - x[0])**2 + 100 * (x[1] - x[0]**2)**2
 
-result = gradient_descent(initial=[-1.0, 1.0], function=rosenbrock, 
-                         learning_rate=0.001, trials=1000)
-# Finds minimum at (1, 1)
+result = gradient_descent(initial=[-1.0, 1.0], function=rosenbrock, learning_rate=0.001, trials=1000)
+# Output: Carefully navigates the valley, converges toward array([1., 1.])
 ```
 
----
-
-#### Example 8: Three Variables
-```python
-def f(x):
-    return x[0]**2 + 2*x[1]**2 + 3*x[2]**2
-
-result = gradient_descent(initial=[1.0, 2.0, 3.0], function=f, 
-                         learning_rate=0.1, trials=50)
-# Finds minimum at (0, 0, 0)
-```
-
----
-
-#### Example 9: Check Initial Gradient Only
+**Use Case 3: Initial Gradient Inspection Only**
 ```python
 def f(x):
     return x**3 - 2*x**2 + x
 
-result = gradient_descent(initial=2.0, function=f, 
-                         learning_rate=0.1, trials=0)
-# Shows gradient at x=2 without updating
-```
-
----
-
-#### Example 10: Saddle Point
-```python
-def f(x):
-    return x[0]**2 - x[1]**2
-
-result = gradient_descent(initial=[1.0, 1.0], function=f, 
-                         learning_rate=0.1, trials=50)
-# Converges to saddle point at (0, 0)
+result = gradient_descent(initial=2.0, function=f, learning_rate=0.1, trials=0)
+# Output: Prints initial gradient at x=2, performs 0 trials, returns 2.0
 ```
 
 ---
@@ -366,11 +307,20 @@ result = gradient_descent(initial=[1.0, 1.0], function=f,
 def pearson_correlation(x, y)
 ```
 
-**Example:**
+**Use Case 1: Strong Correlation**
 ```python
 x = np.array([1, 2, 3, 4, 5])
-y = np.array([2, 4, 5, 4, 5])
+y = np.array([2, 4, 6, 8, 10])
 r = pearson_correlation(x, y)
+# Output: 1.0
+```
+
+**Use Case 2: Zero Variance Error Protection**
+```python
+x = np.array([5, 5, 5, 5])
+y = np.array([1, 2, 3, 4])
+r = pearson_correlation(x, y)
+# Output: Prints "Error: Standard deviation is zero", returns None
 ```
 
 ---
@@ -385,13 +335,20 @@ def pearson_correlation_rows(X, Y)
 
 **Returns:** `(correlations, best_feature_row, best_feature_number, best_correlation)`
 
-**Example:**
+**Use Case 1: Finding the Best Feature**
 ```python
-X = np.array([[3.3459, 1.0893, 3.2103, 1.744, 1.6762],
-              [2.7435, 2.9113, 1.4706, 1.2895, 2.1366],
-              [-1.7253, -0.7804, -0.9944, 0.5307, -1.0502]])
-Y = np.array([[2.9972, 1.1399, 2.229, 0.3387, 2.5042]])
+X = np.array([[3.3, 1.0, 3.2], [2.7, 2.9, 1.4], [-1.7, -0.7, -0.9]])
+Y = np.array([[3.0, 1.1, 2.2]])
 corrs, best_feat, feat_num, best_corr = pearson_correlation_rows(X, Y)
+# Output: Evaluates 3 features, returns array of 3 correlations, isolates the highest absolute correlation.
+```
+
+**Use Case 2: Handling Dead Features (Zero Variance Row)**
+```python
+X = np.array([[1.0, 1.0, 1.0], [2.0, 4.0, 6.0]])
+Y = np.array([[1.0, 2.0, 3.0]])
+corrs, best_feat, feat_num, best_corr = pearson_correlation_rows(X, Y)
+# Output: Row 0 gets np.nan. Identifies Row 1 as best feature.
 ```
 
 ---
@@ -404,26 +361,22 @@ Builds a simple regression tree with MSE tracking at each depth.
 def regression_tree(x, y, initial_threshold=None, max_depth=3)
 ```
 
-**Parameters:**
-- `initial_threshold`: First split point (default: median)
-- `max_depth`: Maximum tree depth
-
 **Returns:** `(tree_structure, mse_at_depth)`
 
-**Example 1: Simple Tree**
+**Use Case 1: Standard Tree Generation**
 ```python
 X = np.array([[1], [2], [3], [4], [5], [6], [7], [8]])
 Y = np.array([[2], [3], [5], [7], [11], [13], [17], [19]])
 tree, mse_list = regression_tree(X, Y, initial_threshold=4.5, max_depth=2)
+# Output: Returns nested dictionary tree, and mse_list [mse_depth0, mse_depth1, mse_depth2]
 ```
 
-**Example 2: Real Data**
+**Use Case 2: Unequal Array Length Safeguard**
 ```python
-X = np.array([[0.1], [0.7], [1.6], [2.2], [3.6], [4.1], 
-              [4.4], [5.2], [6.2], [7.3]])
-Y = np.array([[1.9], [1.5], [5.4], [6.1], [8.9], [9.5], 
-              [9.6], [12.9], [13.6], [15.7]])
-tree, mse_list = regression_tree(X, Y, initial_threshold=4, max_depth=3)
+X = np.array([1, 2, 3])
+Y = np.array([1, 2, 3, 4])
+tree, mse_list = regression_tree(X, Y)
+# Output: Prints "Error: x and y must have same length", returns (None, None)
 ```
 
 ---
